@@ -3,17 +3,25 @@ import pandas as pd
 import numpy as np
 
 
-CSV_FILE_NAME = "nordnet-ostoerittain.csv"
+STOCK_CSV_FILE = "nordnet-ostoerittain.csv"
+DIVIDEND_CSV_FILE = "transactions_export.csv"
 BASE_TAX_PERCENTAGE = 30
 MARGIN_TAX_PERCENTAGE = 34
 MARGIN_TAX_THRESHOLD = 50000
 ZERO_TAX_THRESHOLD = 1000
 N_YEARS_LOSSES_ACCUMULATED = 5
-NAMING_CONVERSION = {  # Define here the headers in CSV file
+STOCK_NAMING_CONVERSION = {  # Define here the headers in CSV file
     "sell_date": "Luovutusaika",
     "profit": "Voitto tai tappio EUR",
     "buy_cost": "Hankintakulut EUR",
     "sell_cost": "Myyntikulut EUR",
+}
+DIVIDEND_NAMING_CONVERSION = {  # Define here the headers in CSV file
+    "date": "Maksupäivä",
+    "profit": "Summa",
+    "transaction_type": "Tapahtumatyyppi",
+    "dividend": "OSINKO",
+    "tax": "ENNAKKOPIDÄTYS",
 }
 
 
@@ -67,15 +75,24 @@ def printTable(texts, values):
 
 
 def main():
-    nc = NAMING_CONVERSION
+    snc = STOCK_NAMING_CONVERSION
+    dnc = DIVIDEND_NAMING_CONVERSION
 
     # Read CSV
-    csv_file = pd.read_csv(
-        CSV_FILE_NAME, header=0, sep="\t", encoding="utf-16", decimal=",")
-    csv_file[nc["sell_date"]] = pd.to_datetime(
-        csv_file[nc["sell_date"]], format="%d.%m.%Y")
-    min_year = min(csv_file[nc["sell_date"]]).year
-    max_year = max(csv_file[nc["sell_date"]]).year
+    stock_df = pd.read_csv(
+        STOCK_CSV_FILE, header=0, sep="\t", encoding="utf-16", decimal=",")
+    dividend_df = pd.read_csv(
+        DIVIDEND_CSV_FILE, header=0, sep="\t", encoding="utf-16", decimal=",")
+    stock_df[snc["sell_date"]] = pd.to_datetime(
+        stock_df[snc["sell_date"]], format="%d.%m.%Y")
+    dividend_df[dnc["date"]] = pd.to_datetime(
+        dividend_df[dnc["date"]], format="%Y.%m.%d")
+    min_year_stock = min(stock_df[snc["sell_date"]]).year
+    max_year_stock = max(stock_df[snc["sell_date"]]).year
+    min_year_dividend = min(dividend_df[dnc["date"]]).year
+    max_year_dividend = max(dividend_df[dnc["date"]]).year
+    min_year = min(min_year_stock, min_year_dividend)
+    max_year = max(max_year_stock, max_year_dividend)
 
     # Process annual info
     years = list(range(min_year, max_year + 1))
@@ -83,18 +100,32 @@ def main():
     sell_costs = []
     losses = []
     profits = []
+    dividends = []
+    dividend_taxes = []
     earnings = []
     taxes = []
     net_earnings = []
     for year in years:
-        rows = csv_file[
-            (csv_file[nc["sell_date"]] > f"01-01-{year}") &
-            (csv_file[nc["sell_date"]] < f"31-12-{year}")
+        rows_stock = stock_df[
+            (stock_df[snc["sell_date"]] > f"01-01-{year}") &
+            (stock_df[snc["sell_date"]] < f"31-12-{year}")
         ]
-        loss = abs(rows[rows[nc["profit"]] < 0][nc["profit"]].to_numpy().sum())
-        profit = rows[rows[nc["profit"]] >= 0][nc["profit"]].to_numpy().sum()
-        buy_cost = rows[nc["buy_cost"]].astype(float).to_numpy().sum()
-        sell_cost = rows[nc["sell_cost"]].astype(float).to_numpy().sum()
+        rows_dividend = dividend_df[
+            (dividend_df[dnc["date"]] > f"01-01-{year}") &
+            (dividend_df[dnc["date"]] < f"31-12-{year}")
+        ]
+        buy_cost = rows_stock[snc["buy_cost"]].astype(float).to_numpy().sum()
+        sell_cost = rows_stock[snc["sell_cost"]].astype(float).to_numpy().sum()
+        loss = abs(rows_stock[rows_stock[snc["profit"]] < 0][
+            snc["profit"]].to_numpy().sum())
+        profit = rows_stock[rows_stock[snc["profit"]] >= 0][
+            snc["profit"]].to_numpy().sum()
+        dividend = rows_dividend[
+            rows_dividend[dnc["transaction_type"]] ==
+            dnc["dividend"]][dnc["profit"]].to_numpy().astype(np.float64).sum()
+        dividend_tax = abs(rows_dividend[rows_dividend[
+            dnc["transaction_type"]] ==
+            dnc["tax"]][dnc["profit"]].to_numpy().astype(np.float64).sum())
         earning = profit - buy_cost - sell_cost - loss
         earnings.append(earning)
         tax = taxAmount(earnings)
@@ -102,9 +133,18 @@ def main():
         buy_costs.append(buy_cost)
         sell_costs.append(sell_cost)
         profits.append(profit)
+        dividends.append(dividend)
+        dividend_taxes.append(dividend_tax)
         losses.append(loss)
         taxes.append(tax)
         net_earnings.append(net_earning)
+
+    # Add dividends to earnings after tax calculations because dividends are
+    # already taxed immediately when you receive them
+    taxes = [a + b for (a, b) in zip(taxes, dividend_taxes)]
+    earnings = [a + b + c for (a, b, c) in zip(
+        earnings, dividends, dividend_taxes)]
+    net_earnings = [a + b for (a, b) in zip(net_earnings, dividends)]
 
     # Print
     texts = [
@@ -113,6 +153,7 @@ def main():
         "Sell cost",
         "Loss",
         "Profit",
+        "Dividend",
         "Earning",
         "Tax",
         "Net earning"
@@ -123,6 +164,7 @@ def main():
         sell_costs,
         losses,
         profits,
+        dividends,
         earnings,
         taxes,
         net_earnings,

@@ -7,7 +7,7 @@ STOCK_CSV_FILE = "nordnet-ostoerittain.csv"
 DIVIDEND_CSV_FILE = "transactions_export.csv"
 BASE_TAX_PERCENTAGE = 30
 MARGIN_TAX_PERCENTAGE = 34
-MARGIN_TAX_THRESHOLD = 50000
+MARGIN_TAX_THRESHOLD = 30000
 ZERO_TAX_THRESHOLD = 1000
 N_YEARS_LOSSES_ACCUMULATED = 5
 STOCK_NAMING_CONVERSION = {  # Define here the headers in CSV file
@@ -25,14 +25,7 @@ DIVIDEND_NAMING_CONVERSION = {  # Define here the headers in CSV file
 }
 
 
-def taxAmount(incomes):
-    # Calculate income based on previous years losses
-    previous_years_incomes = sum(incomes[-N_YEARS_LOSSES_ACCUMULATED:-1])
-    income = incomes[-1]
-    if previous_years_incomes < 0:
-        income += previous_years_incomes
-
-    # Calculate tax for income
+def singleTax(income):
     if income > MARGIN_TAX_THRESHOLD:
         base_tax = BASE_TAX_PERCENTAGE * MARGIN_TAX_THRESHOLD
         margin_tax = MARGIN_TAX_PERCENTAGE * (income - MARGIN_TAX_THRESHOLD)
@@ -42,6 +35,17 @@ def taxAmount(incomes):
     else:
         tax = BASE_TAX_PERCENTAGE * income / 100
     return tax
+
+
+def totalTax(incomes):
+    # Calculate income based on previous years losses
+    previous_years_incomes = sum(incomes[-N_YEARS_LOSSES_ACCUMULATED:-1])
+    income = incomes[-1]
+    if previous_years_incomes < 0:
+        income += previous_years_incomes
+
+    # Calculate tax for income
+    return singleTax(income)
 
 
 def printTable(texts, values):
@@ -101,7 +105,7 @@ def main():
     losses = []
     profits = []
     dividends = []
-    dividend_taxes = []
+    paid_dividend_taxes = []
     incomes = []
     stock_taxes = []
     net_incomes = []
@@ -123,27 +127,27 @@ def main():
         dividend = rows_dividend[
             rows_dividend[dnc["transaction_type"]] ==
             dnc["dividend"]][dnc["profit"]].to_numpy().astype(np.float64).sum()
-        dividend_tax = abs(rows_dividend[rows_dividend[
+        paid_dividend_tax = abs(rows_dividend[rows_dividend[
             dnc["transaction_type"]] ==
             dnc["tax"]][dnc["profit"]].to_numpy().astype(np.float64).sum())
         income = profit - buy_cost - sell_cost - loss
         incomes.append(income)
-        tax = taxAmount(incomes)
+        tax = totalTax(incomes)
         net_income = income - tax
         buy_costs.append(buy_cost)
         sell_costs.append(sell_cost)
         profits.append(profit)
         dividends.append(dividend)
-        dividend_taxes.append(dividend_tax)
+        paid_dividend_taxes.append(paid_dividend_tax)
         losses.append(loss)
         stock_taxes.append(tax)
         net_incomes.append(net_income)
 
     # Add dividends to incomes after tax calculations because dividends are
     # already taxed immediately when you receive them
-    total_taxes = [a + b for (a, b) in zip(stock_taxes, dividend_taxes)]
+    total_taxes = [a + b for (a, b) in zip(stock_taxes, paid_dividend_taxes)]
     incomes = [a + b + c for (a, b, c) in zip(
-        incomes, dividends, dividend_taxes)]
+        incomes, dividends, paid_dividend_taxes)]
     net_incomes = [a + b for (a, b) in zip(net_incomes, dividends)]
 
     # Print
@@ -156,7 +160,7 @@ def main():
         "Dividend",
         "Income",
         "Stock tax",
-        "Dividend tax",
+        "Paid dividend tax",
         "Total tax",
         "Net income"
     ]
@@ -169,7 +173,7 @@ def main():
         dividends,
         incomes,
         stock_taxes,
-        dividend_taxes,
+        paid_dividend_taxes,
         total_taxes,
         net_incomes,
     ]

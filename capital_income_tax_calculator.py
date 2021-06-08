@@ -98,7 +98,7 @@ def main():
     min_year = min(min_year_stock, min_year_dividend)
     max_year = max(max_year_stock, max_year_dividend)
 
-    # Process annual info
+    # Data storage
     years = list(range(min_year, max_year + 1))
     buy_costs = []
     sell_costs = []
@@ -106,10 +106,15 @@ def main():
     profits = []
     dividends = []
     paid_dividend_taxes = []
-    incomes = []
-    stock_taxes = []
+    taxed_incomes = []
+    stock_incomes = []
+    total_taxes = []
     net_incomes = []
+
+    # Process annual info
     for year in years:
+
+        # Pick annual data
         rows_stock = stock_df[
             (stock_df[snc["sell_date"]] > f"01-01-{year}") &
             (stock_df[snc["sell_date"]] < f"31-12-{year}")
@@ -118,6 +123,8 @@ def main():
             (dividend_df[dnc["date"]] > f"01-01-{year}") &
             (dividend_df[dnc["date"]] < f"31-12-{year}")
         ]
+
+        # Read data
         buy_cost = rows_stock[snc["buy_cost"]].astype(float).to_numpy().sum()
         sell_cost = rows_stock[snc["sell_cost"]].astype(float).to_numpy().sum()
         loss = abs(rows_stock[rows_stock[snc["profit"]] < 0][
@@ -130,25 +137,27 @@ def main():
         paid_dividend_tax = abs(rows_dividend[rows_dividend[
             dnc["transaction_type"]] ==
             dnc["tax"]][dnc["profit"]].to_numpy().astype(np.float64).sum())
-        income = profit - buy_cost - sell_cost - loss
-        incomes.append(income)
-        tax = totalTax(incomes)
-        net_income = income - tax
+
+        # Calculate income and tax
+        stock_income = profit - buy_cost - sell_cost - loss
+        stock_incomes.append(stock_income)
+        taxed_incomes.append(stock_income + 0.85 * dividend)
+        total_tax = totalTax(taxed_incomes)
+        net_income = stock_income + dividend - total_tax
+
+        # Store data
         buy_costs.append(buy_cost)
         sell_costs.append(sell_cost)
         profits.append(profit)
         dividends.append(dividend)
         paid_dividend_taxes.append(paid_dividend_tax)
         losses.append(loss)
-        stock_taxes.append(tax)
+        total_taxes.append(total_tax)
         net_incomes.append(net_income)
 
-    # Add dividends to incomes after tax calculations because dividends are
-    # already taxed immediately when you receive them
-    total_taxes = [a + b for (a, b) in zip(stock_taxes, paid_dividend_taxes)]
-    incomes = [a + b + c for (a, b, c) in zip(
-        incomes, dividends, paid_dividend_taxes)]
-    net_incomes = [a + b for (a, b) in zip(net_incomes, dividends)]
+    total_incomes = [a + b  for (a, b) in zip(stock_incomes, dividends)]
+    residual_taxes = [
+        max(0, a - b)  for (a, b) in zip(total_taxes, paid_dividend_taxes)]
 
     # Print
     texts = [
@@ -159,9 +168,9 @@ def main():
         "Profit",
         "Dividend",
         "Income",
-        "Stock tax",
         "Paid dividend tax",
         "Total tax",
+        "Residual tax",
         "Net income"
     ]
     values = [
@@ -171,10 +180,10 @@ def main():
         losses,
         profits,
         dividends,
-        incomes,
-        stock_taxes,
+        total_incomes,
         paid_dividend_taxes,
         total_taxes,
+        residual_taxes,
         net_incomes,
     ]
     for i in range(1, len(values)):

@@ -1,6 +1,8 @@
 import csv
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+from math import sqrt, ceil
 
 
 STOCK_CSV_FILE = "nordnet-ostoerittain.csv"
@@ -76,6 +78,29 @@ def printTable(texts, values):
             print("{}{}".format(" " * number_of_spaces, value), end=" | ")
         print()
     print(table_length * "-")
+
+
+def plotData(x_labels, datas, titles):
+    grid_x = int(sqrt(len(datas)))
+    grid_y = ceil(len(datas) / grid_x)
+    plt.subplots_adjust(
+        left=0.05,
+        bottom=0.05,
+        right=0.95,
+        top=0.95,
+        wspace=None,
+        hspace=0.4)
+    for i in range(len(datas)):
+        data = len(datas[0]) * [0]
+        title = ""
+        if i < len(datas):
+            data = datas[i]
+        if i < len(titles):
+            title = titles[i]
+        plt.subplot(grid_x, grid_y, i+1)
+        plt.bar(x_labels, data)
+        plt.title(title)
+    plt.show()
 
 
 def main():
@@ -174,7 +199,7 @@ def main():
         "Net income"
     ]
     values = [
-        years + ["Total"],
+        years,
         buy_costs,
         sell_costs,
         losses,
@@ -186,8 +211,13 @@ def main():
         residual_taxes,
         net_incomes,
     ]
-    for i in range(1, len(values)):
-        values[i].append(sum(values[i]))
+    plotData(years, values[1:], texts[1:])
+    for i in range(len(values)):
+        if i == 0:
+            total = ["Total"]
+        else:
+            total = [sum(values[i])]
+        values[i] = values[i].copy() + total
     printTable(texts, values)
 
 

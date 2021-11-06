@@ -5,7 +5,7 @@ import sys
 START_EQUITY = int(sys.argv[1])
 MONTHLY_SAVIGS = int(sys.argv[2])
 MONTHLY_SAVIGS_ANNUAL_INCREASE_PERCENT = 7
-ANNUAL_RETURN_EXPECTATION_PERCENT = 15
+ANNUAL_RETURN_EXPECTATION_PERCENT = 25
 MAX_INVEST_YEARS = 20
 
 
@@ -47,8 +47,7 @@ def main():
     plt.plot(years, annual_equities, label="Investments")
     plt.plot(years, annual_savings, label="Savings")
     plt.plot(years_to_million, money_after_million, "go")
-    current_values = plt.gca().get_yticks()
-    plt.gca().set_yticklabels(["{:,.0f}".format(x) for x in current_values])
+    plt.gca().set_yticklabels(["{:,.0f}".format(x) for x in plt.gca().get_yticks()])
     plt.legend()
     plt.xlabel("Years")
     plt.ylabel("Euros (€)")

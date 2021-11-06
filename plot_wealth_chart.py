@@ -63,6 +63,10 @@ def readCsvData(file_name, delimiter):
                     y1 = y0 + (y2 - y0) * (x1 - x0) / (x2 - x0)
                     year_values[key].append(y1)
             previous_year = year
+        year_values["savings"].append(saving)
+        year_values["stock_profits"].append(stock_profit)
+        year_values["equities"].append(saving + stock_profit)
+        year_values["years"].append(year)
     return date_values, year_values
 
 
@@ -77,6 +81,7 @@ def plotDataPerDay(dates_as_numbers, datas, labels, title, ylabel):
     plt.xlabel("Date")
     plt.ylabel(ylabel)
     plt.title(title)
+    plt.gca().set_yticklabels(["{:,.0f}".format(x) for x in plt.gca().get_yticks()])
     plt.show()
 
 
@@ -107,9 +112,7 @@ def percentageYearlyGrowth(year_values, skip_keys, equity_comparison_keys=[]):
     for key in equity_comparison_keys:
         growths = []
         for i in range(1, len(year_values[key])):
-            growth = 100 * (year_values[key][i] / year_values["equities"][i-1] - 1)
-            if key == "stock_profits":
-                growth += 100
+            growth = 100 * (year_values[key][i] - year_values[key][i-1]) / year_values["equities"][i-1]
             growths.append(growth)
         percentage_yearly_growth[key + "_per_equity"] = growths
     percentage_yearly_growth["years"] = year_values["years"][1:].copy()
@@ -163,12 +166,52 @@ def plot2Datasets(x, data_1, data_2, title, ylabel_1, ylabel_2,
     indices_2 = list(np.array(x) + bar_width / 2)
     ax_1.bar(indices_1, data_1, bar_width, label=data_name_1)
     ax_1.set_ylabel(ylabel_1)
-    ax_1.bar(
-        indices_2, data_2, bar_width, label=data_name_2, color=color)
+    ax_1.bar(indices_2, data_2, bar_width, label=data_name_2, color=color)
 
     fig.legend()
     ax_1.set_xlabel("Year")
     plt.title(title)
+    plt.gca().set_yticklabels(["{:,.0f}".format(x) for x in plt.gca().get_yticks()])
+    plt.show()
+
+
+def plotTable(year_values):
+    table_data = []
+    previous_equity = 0
+    previous_saving = 0
+    previous_stock_profit = 0
+    for i in range(len(year_values["years"])):
+        equity = int(year_values["equities"][i])
+        saving = int(year_values["savings"][i])
+        stock_profit = int(year_values["stock_profits"][i])
+        table_data.append([
+            year_values["years"][i],
+            "{:,.0f}".format(equity),
+            "-" if previous_equity == 0 else "{:.2f} %".format(100 * (equity / previous_equity - 1)),
+            "{:,.0f}".format(saving),
+            "-" if previous_saving == 0 else "{:.2f} %".format(100 * (saving / previous_saving - 1)),
+            "{:,.0f}".format(stock_profit),
+            "-" if previous_stock_profit <= 0 else "{:.2f} %".format(100 * (stock_profit / previous_stock_profit - 1)),
+        ])
+        previous_equity = equity
+        previous_saving = saving
+        previous_stock_profit = stock_profit
+    plt.axis("off")
+    table = plt.table(
+        cellText=table_data,
+        loc="center",
+        colLabels=[
+            "Year",
+            "Equity",
+            "YoY equity change",
+            "Savings",
+            "YoY savings change",
+            "Stock profit",
+            "YoY stock profit change",
+        ])
+    table.auto_set_font_size(False)
+    table.set_fontsize(14)
+    plt.title("Cumulative values")
     plt.show()
 
 
@@ -189,6 +232,9 @@ def main():
             date_values["equities"]
         ], ["Savings", "Stock profits", "Equity"],
         "Wealth progress", "€")
+
+    # Annual growth in table
+    plotTable(year_values)
 
     # Plot growth
     y = [

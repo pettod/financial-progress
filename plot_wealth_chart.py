@@ -15,6 +15,8 @@ DELIMITER = ','
 DATE_FORMAT = "%Y"
 LOCATOR = mdates.YearLocator
 
+YEARS_PREDICTION = 3
+
 
 def readCsvData(file_name, delimiter):
     date_values = {
@@ -70,11 +72,13 @@ def readCsvData(file_name, delimiter):
     return date_values, year_values
 
 
-def plotDataPerDay(dates_as_numbers, datas, labels, title, ylabel):
+def plotDataPerDay(
+        dates_as_numbers, datas, labels, title, ylabel, show=True,
+        line_style='-'):
     plt.gca().xaxis.set_major_formatter(mdates.DateFormatter(DATE_FORMAT))
     plt.gca().xaxis.set_major_locator(LOCATOR())
     for data, label in zip(datas, labels):
-        plt.plot(dates_as_numbers, data, label=label)
+        plt.plot(dates_as_numbers, data, line_style, label=label)
     plt.legend()
     plt.grid(axis='y')
     plt.gcf().autofmt_xdate()
@@ -82,7 +86,8 @@ def plotDataPerDay(dates_as_numbers, datas, labels, title, ylabel):
     plt.ylabel(ylabel)
     plt.title(title)
     plt.gca().set_yticklabels(["{:,.0f}".format(x) for x in plt.gca().get_yticks()])
-    plt.show()
+    if show:
+        plt.show()
 
 
 def readCommandLineArguments():
@@ -215,6 +220,23 @@ def plotTable(year_values):
     plt.show()
 
 
+def predictGrowth(dates_as_numbers, datas, labels, title, y_label="€"):
+    for i in range(len(datas)):
+        p = np.polyfit(dates_as_numbers, np.log(np.array(datas[i])), 1)
+        a = np.exp(p[1])
+        b = p[0]
+        fitted_x = np.linspace(
+            dates_as_numbers[0], 366 * YEARS_PREDICTION + dates_as_numbers[-1], 100)
+        fitted_y = a * np.exp(b * fitted_x)
+        plotDataPerDay(
+            dates_as_numbers, [datas[i]], [labels[i]], title, y_label, False)
+        plotDataPerDay(
+            fitted_x, [fitted_y], [f"{labels[i]} prediction"], title, y_label,
+            False, line_style="--")
+    plt.grid(axis='y')
+    plt.show()
+
+
 def main():
     # Read data
     csv_file_name, delimiter = readCommandLineArguments()
@@ -229,9 +251,18 @@ def main():
         [
             date_values["savings"],
             date_values["stock_profits"],
-            date_values["equities"]
+            date_values["equities"],
         ], ["Savings", "Stock profits", "Equity"],
         "Wealth progress", "€")
+
+    # Plot growth prediction
+    predictGrowth(
+        date_values["dates_as_numbers"],
+        [
+            date_values["savings"],
+            date_values["equities"],
+        ], ["Savings", "Equity"],
+        "Wealth progress prediction")
 
     # Annual growth in table
     plotTable(year_values)
@@ -262,4 +293,5 @@ def main():
         "€", "€", "Savings", "Stock profits")
 
 
-main()
+if __name__ == "__main__":
+    main()

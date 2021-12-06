@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 from math import sqrt, ceil
 
 
-STOCK_CSV_FILE = "nordnet-ostoerittain.csv"
-DIVIDEND_CSV_FILE = "transactions_export.csv"
+STOCK_CSV_FILE = "9a-report.csv"
+DIVIDEND_CSV_FILE = "transactions-and-notes.csv"
 BASE_TAX_PERCENTAGE = 30
 MARGIN_TAX_PERCENTAGE = 34
 MARGIN_TAX_THRESHOLD = 30000
@@ -72,7 +72,7 @@ def printTable(texts, values):
         print("| ", end="")
         for j in range(len(values)):
             value = values[j][i]
-            if type(value) == np.float64:
+            if type(value) == np.float64 or type(value) == float:
                 value = "{0:.2f}".format(value)
             number_of_spaces = max(0, text_lengths[j] - len(str(value)))
             print("{}{}".format(" " * number_of_spaces, value), end=" | ")
@@ -156,12 +156,22 @@ def main():
             snc["profit"]].to_numpy().sum())
         profit = rows_stock[rows_stock[snc["profit"]] >= 0][
             snc["profit"]].to_numpy().sum()
-        dividend = rows_dividend[
-            rows_dividend[dnc["transaction_type"]] ==
-            dnc["dividend"]][dnc["profit"]].to_numpy().astype(np.float64).sum()
-        paid_dividend_tax = abs(rows_dividend[rows_dividend[
-            dnc["transaction_type"]] ==
-            dnc["tax"]][dnc["profit"]].to_numpy().astype(np.float64).sum())
+        try:
+            dividend = rows_dividend[
+                rows_dividend[dnc["transaction_type"]] ==
+                dnc["dividend"]][dnc["profit"]].astype(float).to_numpy().sum()
+        except ValueError:
+            dividend = sum([float(d.replace(',', '.')) for d in rows_dividend[
+                rows_dividend[dnc["transaction_type"]] ==
+                dnc["dividend"]][dnc["profit"]].to_numpy()])
+        try:
+            paid_dividend_tax = abs(rows_dividend[rows_dividend[
+                dnc["transaction_type"]] ==
+                dnc["tax"]][dnc["profit"]].astype(float).to_numpy().sum())
+        except ValueError:
+            paid_dividend_tax = abs(sum([float(pdt.replace(',', '.')) for pdt in
+                rows_dividend[rows_dividend[dnc["transaction_type"]] ==
+                dnc["tax"]][dnc["profit"]].to_numpy()]))
 
         # Calculate income and tax
         stock_income = profit - buy_cost - sell_cost - loss

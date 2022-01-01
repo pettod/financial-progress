@@ -89,6 +89,16 @@ def plotData(x_labels, datas, titles):
         top=0.95,
         wspace=None,
         hspace=0.4)
+
+    # y-axis limits
+    y_max = 0
+    y_min = 0
+    for data in datas:
+        y_min = min(y_min, min(data))
+        y_max = max(y_max, max(data))
+    text_y_offset = 0.01 * (y_max + abs(y_min))
+    y_limit_offset = 0.1 * abs(y_max - y_min)
+
     for i in range(len(datas)):
         data = len(datas[0]) * [0]
         title = ""
@@ -97,15 +107,15 @@ def plotData(x_labels, datas, titles):
         if i < len(titles):
             title = titles[i]
         plt.subplot(grid_x, grid_y, i+1)
+        plt.ylim(y_min - y_limit_offset, y_max + y_limit_offset)
 
         # Values on top the bars
         bars = plt.bar(x_labels, data)
-        offset = 0.01 * (max(data) + abs(min(0, min(data))))
         for bar in bars:
             height = bar.get_height()
             width = bar.get_width()
             x = bar.get_x() + width / 2
-            y = max(0, height) + offset
+            y = max(0, height) + text_y_offset
             value = round(height, 2)
             plt.text(x, y, value, horizontalalignment="center")
         plt.title(title)

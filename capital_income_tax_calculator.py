@@ -18,11 +18,12 @@ STOCK_NAMING_CONVERSION = {  # Define here the headers in CSV file
     "sell_cost": "Myyntikulut EUR",
 }
 DIVIDEND_NAMING_CONVERSION = {  # Define here the headers in CSV file
-    "date": "Maksupäivä",
+    "date": "Kauppapäivä",
     "profit": "Summa",
     "transaction_type": "Tapahtumatyyppi",
     "dividend": "OSINKO",
     "tax": "ENNAKKOPIDÄTYS",
+    "loan_interest": "LAINAKORKO",
 }
 
 
@@ -146,6 +147,7 @@ def main():
     years = list(range(min_year, max_year + 1))
     buy_costs = []
     sell_costs = []
+    loan_interests = []
     losses = []
     profits = []
     dividends = []
@@ -160,12 +162,12 @@ def main():
 
         # Pick annual data
         rows_stock = stock_df[
-            (stock_df[snc["sell_date"]] > f"01-01-{year}") &
-            (stock_df[snc["sell_date"]] < f"31-12-{year}")
+            (stock_df[snc["sell_date"]] >= f"01-01-{year}") &
+            (stock_df[snc["sell_date"]] <= f"31-12-{year}")
         ]
         rows_dividend = dividend_df[
-            (dividend_df[dnc["date"]] > f"01-01-{year}") &
-            (dividend_df[dnc["date"]] < f"31-12-{year}")
+            (dividend_df[dnc["date"]] >= f"01-01-{year}") &
+            (dividend_df[dnc["date"]] <= f"31-12-{year}")
         ]
 
         # Read data
@@ -175,25 +177,30 @@ def main():
             snc["profit"]].to_numpy().sum())
         profit = rows_stock[rows_stock[snc["profit"]] >= 0][
             snc["profit"]].to_numpy().sum()
+
         try:
             dividend = rows_dividend[
                 rows_dividend[dnc["transaction_type"]] ==
                 dnc["dividend"]][dnc["profit"]].astype(float).to_numpy().sum()
-        except ValueError:
-            dividend = sum([float(d.replace(',', '.')) for d in rows_dividend[
+            loan_interest = abs(rows_dividend[
                 rows_dividend[dnc["transaction_type"]] ==
-                dnc["dividend"]][dnc["profit"]].to_numpy()])
-        try:
+                dnc["loan_interest"]][dnc["profit"]].astype(float).to_numpy().sum())
             paid_dividend_tax = abs(rows_dividend[rows_dividend[
                 dnc["transaction_type"]] ==
                 dnc["tax"]][dnc["profit"]].astype(float).to_numpy().sum())
         except ValueError:
+            dividend = sum([float(d.replace(',', '.')) for d in rows_dividend[
+                rows_dividend[dnc["transaction_type"]] ==
+                dnc["dividend"]][dnc["profit"]].to_numpy()])
+            loan_interest = abs(sum([float(d.replace(',', '.')) for d in rows_dividend[
+                rows_dividend[dnc["transaction_type"]] ==
+                dnc["loan_interest"]][dnc["profit"]].to_numpy()]))
             paid_dividend_tax = abs(sum([float(pdt.replace(',', '.')) for pdt in
                 rows_dividend[rows_dividend[dnc["transaction_type"]] ==
                 dnc["tax"]][dnc["profit"]].to_numpy()]))
 
         # Calculate income and tax
-        stock_income = profit - buy_cost - sell_cost - loss
+        stock_income = profit - buy_cost - sell_cost - loan_interest - loss
         stock_incomes.append(stock_income)
         taxed_incomes.append(stock_income + 0.85 * dividend)
         total_tax = totalTax(taxed_incomes)
@@ -202,6 +209,7 @@ def main():
         # Store data
         buy_costs.append(buy_cost)
         sell_costs.append(sell_cost)
+        loan_interests.append(loan_interest)
         profits.append(profit)
         dividends.append(dividend)
         paid_dividend_taxes.append(paid_dividend_tax)
@@ -218,6 +226,7 @@ def main():
         "Year",
         "Buy cost",
         "Sell cost",
+        "Loan interest",
         "Loss",
         "Profit",
         "Dividend",
@@ -231,6 +240,7 @@ def main():
         years,
         buy_costs,
         sell_costs,
+        loan_interests,
         losses,
         profits,
         dividends,

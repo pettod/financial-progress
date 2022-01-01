@@ -1,4 +1,3 @@
-import csv
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -98,7 +97,17 @@ def plotData(x_labels, datas, titles):
         if i < len(titles):
             title = titles[i]
         plt.subplot(grid_x, grid_y, i+1)
-        plt.bar(x_labels, data)
+
+        # Values on top the bars
+        bars = plt.bar(x_labels, data)
+        offset = 0.01 * (max(data) + abs(min(0, min(data))))
+        for bar in bars:
+            height = bar.get_height()
+            width = bar.get_width()
+            x = bar.get_x() + width / 2
+            y = max(0, height) + offset
+            value = round(height, 2)
+            plt.text(x, y, value, horizontalalignment="center")
         plt.title(title)
     plt.show()
 

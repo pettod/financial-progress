@@ -180,12 +180,14 @@ def plot2Datasets(x, data_1, data_2, title, ylabel_1, ylabel_2,
     plt.show()
 
 
-def plotTable(year_values):
+def plotTable(year_values, date_values):
     table_data = []
     previous_equity = 0
     previous_saving = 0
     previous_stock_profit = 0
-    for i in range(len(year_values["years"])):
+    number_of_years = len(year_values["years"])
+    for i in range(number_of_years):
+        months_a_year = mdates.num2date(date_values["dates_as_numbers"][-1]).month if i == number_of_years - 1 else 12
         equity = int(year_values["equities"][i])
         saving = int(year_values["savings"][i])
         stock_profit = int(year_values["stock_profits"][i])
@@ -194,6 +196,7 @@ def plotTable(year_values):
             "{:,.0f}".format(equity),
             "-" if previous_equity == 0 else "{:.2f} %".format(100 * (equity / previous_equity - 1)),
             "{:,.0f}".format(saving),
+            "{:,.0f}".format((saving - previous_saving) / months_a_year),
             "-" if previous_saving == 0 else "{:.2f} %".format(100 * (saving / previous_saving - 1)),
             "{:,.0f}".format(stock_profit),
             "-" if previous_stock_profit <= 0 else "{:.2f} %".format(100 * (stock_profit / previous_stock_profit - 1)),
@@ -210,6 +213,7 @@ def plotTable(year_values):
             "Equity",
             "YoY equity change",
             "Savings",
+            "Monthly absolute savings",
             "YoY savings change",
             "Stock profit",
             "YoY stock profit change",
@@ -265,7 +269,7 @@ def main():
         "Wealth progress prediction")
 
     # Annual growth in table
-    plotTable(year_values)
+    plotTable(year_values, date_values)
 
     # Plot growth
     y = [

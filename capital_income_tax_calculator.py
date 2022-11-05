@@ -11,19 +11,26 @@ MARGIN_TAX_PERCENTAGE = 34
 MARGIN_TAX_THRESHOLD = 30000
 ZERO_TAX_THRESHOLD = 1000
 N_YEARS_LOSSES_ACCUMULATED = 5
-STOCK_NAMING_CONVERSION = {  # Define here the headers in CSV file
+
+# Define here the headers in CSV file
+# 9a-report.csv
+STOCK_NAMING_CONVERSION = {
     "sell_date": "Luovutusaika",
     "profit": "Voitto tai tappio EUR",
     "buy_cost": "Hankintakulut EUR",
     "sell_cost": "Myyntikulut EUR",
 }
-DIVIDEND_NAMING_CONVERSION = {  # Define here the headers in CSV file
+
+# Define here the headers in CSV file
+# transactions-and-notes.csv
+DIVIDEND_NAMING_CONVERSION = {
     "date": "Kauppapäivä",
     "profit": "Summa",
     "transaction_type": "Tapahtumatyyppi",
     "dividend": "OSINKO",
     "tax": "ENNAKKOPIDÄTYS",
     "loan_interest": "LAINAKORKO",
+    "deposit": "TALLETUS",
 }
 
 
@@ -145,6 +152,7 @@ def main():
 
     # Data storage
     years = list(range(min_year, max_year + 1))
+    deposits = []
     buy_costs = []
     sell_costs = []
     loan_interests = []
@@ -179,6 +187,9 @@ def main():
             snc["profit"]].to_numpy().sum()
 
         try:
+            deposit = rows_dividend[
+                rows_dividend[dnc["transaction_type"]] ==
+                dnc["deposit"]][dnc["profit"]].replace(' ', '').astype(float).to_numpy().sum()
             dividend = rows_dividend[
                 rows_dividend[dnc["transaction_type"]] ==
                 dnc["dividend"]][dnc["profit"]].astype(float).to_numpy().sum()
@@ -189,6 +200,9 @@ def main():
                 dnc["transaction_type"]] ==
                 dnc["tax"]][dnc["profit"]].astype(float).to_numpy().sum())
         except ValueError:
+            deposit = sum([float(d.replace(',', '.').replace(' ', '')) for d in rows_dividend[
+                rows_dividend[dnc["transaction_type"]] ==
+                dnc["deposit"]][dnc["profit"]].to_numpy()])
             dividend = sum([float(d.replace(',', '.')) for d in rows_dividend[
                 rows_dividend[dnc["transaction_type"]] ==
                 dnc["dividend"]][dnc["profit"]].to_numpy()])
@@ -207,6 +221,7 @@ def main():
         net_income = stock_income + dividend - total_tax
 
         # Store data
+        deposits.append(deposit)
         buy_costs.append(buy_cost)
         sell_costs.append(sell_cost)
         loan_interests.append(loan_interest)
@@ -224,6 +239,7 @@ def main():
     # Print
     texts = [
         "Year",
+        "Deposit",
         "Buy cost",
         "Sell cost",
         "Loan interest",
@@ -238,6 +254,7 @@ def main():
     ]
     values = [
         years,
+        deposits,
         buy_costs,
         sell_costs,
         loan_interests,

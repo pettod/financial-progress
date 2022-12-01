@@ -87,7 +87,17 @@ def printTable(texts, values):
     print(table_length * "-")
 
 
-def plotData(x_labels, datas, titles):
+def getRedGreenColorMap(data):
+    color_map = []
+    for value in data:
+        if value < 0:
+            color_map.append('r')
+        else:
+            color_map.append('g')
+    return tuple(color_map)
+
+
+def plotData(x_labels, datas, titles, colors):
     grid_x = int(sqrt(len(datas)))
     grid_y = ceil(len(datas) / grid_x)
     plt.subplots_adjust(
@@ -118,7 +128,13 @@ def plotData(x_labels, datas, titles):
         plt.ylim(y_min - y_limit_offset, y_max + y_limit_offset)
 
         # Values on top the bars
-        bars = plt.bar(x_labels, data)
+        color = colors[i]
+        if color not in ["r", "g", "rg"]:
+            raise ValueError(
+                f"Color ({color}) must be one the following ['r', 'g', 'rg']")
+        if color == "rg":
+            color = getRedGreenColorMap(data)
+        bars = plt.bar(x_labels, data, color=color)
         for bar in bars:
             height = bar.get_height()
             width = bar.get_width()
@@ -232,9 +248,9 @@ def main():
         total_taxes.append(total_tax)
         net_incomes.append(net_income)
 
-    total_incomes = [a + b  for (a, b) in zip(stock_incomes, dividends)]
+    total_incomes = [a + b for (a, b) in zip(stock_incomes, dividends)]
     residual_taxes = [
-        max(0, a - b)  for (a, b) in zip(total_taxes, paid_dividend_taxes)]
+        max(0, a - b) for (a, b) in zip(total_taxes, paid_dividend_taxes)]
 
     # Print
     texts = [
@@ -250,7 +266,7 @@ def main():
         "Paid dividend tax",
         "Total tax",
         "Residual tax",
-        "Net income"
+        "Net income",
     ]
     values = [
         years,
@@ -267,7 +283,21 @@ def main():
         residual_taxes,
         net_incomes,
     ]
-    plotData(years, values[1:], texts[1:])
+    colors = [
+        "g",
+        "r",
+        "r",
+        "r",
+        "r",
+        "g",
+        "g",
+        "rg",
+        "r",
+        "r",
+        "r",
+        "rg",
+    ]
+    plotData(years, values[1:], texts[1:], colors)
     for i in range(len(values)):
         if i == 0:
             total = ["Total"]

@@ -30,8 +30,7 @@ DIVIDEND_NAMING_CONVERSION = {
     "dividend": "OSINKO",
     "tax": "ENNAKKOPIDÄTYS",
     "loan_interest": "LAINAKORKO",
-    "deposit_1": "TALLETUS",
-    "deposit_2": "Reaaliaikainen talle",
+    "deposit": ["TALLETUS", "Reaaliaikainen talle"],
 }
 
 
@@ -204,12 +203,9 @@ def main():
             snc["profit"]].to_numpy().sum()
 
         try:
-            deposit = rows_dividend[
+            deposit = sum([rows_dividend[
                 rows_dividend[dnc["transaction_type"]] ==
-                dnc["deposit_1"]][dnc["profit"]].replace(' ', '').astype(float).to_numpy().sum()
-            deposit += rows_dividend[
-                rows_dividend[dnc["transaction_type"]] ==
-                dnc["deposit_2"]][dnc["profit"]].replace(' ', '').astype(float).to_numpy().sum()
+                deposit_name][dnc["profit"]].replace(' ', '').astype(float).to_numpy().sum() for deposit_name in dnc["deposit"]])
             dividend = rows_dividend[
                 rows_dividend[dnc["transaction_type"]] ==
                 dnc["dividend"]][dnc["profit"]].astype(float).to_numpy().sum()
@@ -220,12 +216,9 @@ def main():
                 dnc["transaction_type"]] ==
                 dnc["tax"]][dnc["profit"]].astype(float).to_numpy().sum())
         except ValueError:
-            deposit = sum([float(d.replace(',', '.').replace(' ', '')) for d in rows_dividend[
+            deposit = sum([sum([float(d.replace(',', '.').replace(' ', '')) for d in rows_dividend[
                 rows_dividend[dnc["transaction_type"]] ==
-                dnc["deposit_1"]][dnc["profit"]].to_numpy()])
-            deposit += sum([float(d.replace(',', '.').replace(' ', '')) for d in rows_dividend[
-                rows_dividend[dnc["transaction_type"]] ==
-                dnc["deposit_2"]][dnc["profit"]].to_numpy()])
+                deposit_name][dnc["profit"]].to_numpy()]) for deposit_name in dnc["deposit"]])
             dividend = sum([float(d.replace(',', '.')) for d in rows_dividend[
                 rows_dividend[dnc["transaction_type"]] ==
                 dnc["dividend"]][dnc["profit"]].to_numpy()])

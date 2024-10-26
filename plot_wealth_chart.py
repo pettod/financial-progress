@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import sys
 from math import sqrt, ceil
+from textwrap import wrap
 
 
 # CSV file name and delimiter in CSV file
@@ -180,6 +181,10 @@ def plot2Datasets(x, data_1, data_2, title, ylabel_1, ylabel_2,
     plt.show()
 
 
+def wrapText(text, max_width=30):
+    return "\n".join(wrap(text, max_width))
+
+
 def plotTable(year_values, date_values):
     table_data = []
     previous_equity = 0
@@ -205,21 +210,27 @@ def plotTable(year_values, date_values):
         previous_saving = saving
         previous_stock_profit = stock_profit
     plt.axis("off")
+    labels = [
+        "Year",
+        "Equity",
+        "YoY equity change",
+        "Savings",
+        "Monthly absolute savings",
+        "YoY savings change",
+        "Stock profit",
+        "YoY stock profit change",
+    ]
+    labels = [wrapText(label, 13) for label in labels]
     table = plt.table(
         cellText=table_data,
         loc="center",
-        colLabels=[
-            "Year",
-            "Equity",
-            "YoY equity change",
-            "Savings",
-            "Monthly absolute savings",
-            "YoY savings change",
-            "Stock profit",
-            "YoY stock profit change",
-        ])
+        colLabels=labels,
+    )
     table.auto_set_font_size(False)
     table.set_fontsize(14)
+    for i in range(len(table_data[0])):
+        cell = table[(0, i)]
+        cell.set_height(0.15)
     plt.title("Cumulative values")
     plt.show()
 

@@ -31,3 +31,5 @@ python capital_income_tax_calulator.py
 Download `nordnet-ostoerittain.csv` from "Sivuni > 9A-raportti"
 
 Download `transactions_export.csv` from "Sivuni > Osinkoraportti"
+
+No need to select any options, just take all records.

@@ -158,7 +158,7 @@ def main():
     stock_df[snc["sell_date"]] = pd.to_datetime(
         stock_df[snc["sell_date"]], format="%d.%m.%Y")
     dividend_df[dnc["date"]] = pd.to_datetime(
-        dividend_df[dnc["date"]], format="%Y.%m.%d")
+        dividend_df[dnc["date"]], format="%Y-%m-%d")
     min_year_stock = min(stock_df[snc["sell_date"]]).year
     max_year_stock = max(stock_df[snc["sell_date"]]).year
     min_year_dividend = min(dividend_df[dnc["date"]]).year
@@ -202,18 +202,32 @@ def main():
         profit = rows_stock[rows_stock[snc["profit"]] >= 0][
             snc["profit"]].to_numpy().sum()
 
-        deposit = sum([sum([float(d.replace(',', '.').replace(' ', '')) for d in rows_dividend[
-            rows_dividend[dnc["transaction_type"]] ==
-            deposit_name][dnc["profit"]].to_numpy()]) for deposit_name in dnc["deposit"]])
-        dividend = sum([float(d.replace(',', '.')) for d in rows_dividend[
-            rows_dividend[dnc["transaction_type"]] ==
-            dnc["dividend"]][dnc["profit"]].to_numpy()])
-        loan_interest = abs(sum([float(d.replace(',', '.')) for d in rows_dividend[
-            rows_dividend[dnc["transaction_type"]] ==
-            dnc["loan_interest"]][dnc["profit"]].to_numpy()]))
-        paid_dividend_tax = abs(sum([float(pdt.replace(',', '.')) for pdt in
-            rows_dividend[rows_dividend[dnc["transaction_type"]] ==
-            dnc["tax"]][dnc["profit"]].to_numpy()]))
+        try:
+            deposit = sum([sum([float(d.replace(',', '.').replace(' ', '')) for d in rows_dividend[
+                rows_dividend[dnc["transaction_type"]] ==
+                deposit_name][dnc["profit"]].to_numpy()]) for deposit_name in dnc["deposit"]])
+            dividend = sum([float(d.replace(',', '.')) for d in rows_dividend[
+                rows_dividend[dnc["transaction_type"]] ==
+                dnc["dividend"]][dnc["profit"]].to_numpy()])
+            loan_interest = abs(sum([float(d.replace(',', '.')) for d in rows_dividend[
+                rows_dividend[dnc["transaction_type"]] ==
+                dnc["loan_interest"]][dnc["profit"]].to_numpy()]))
+            paid_dividend_tax = abs(sum([float(pdt.replace(',', '.')) for pdt in
+                rows_dividend[rows_dividend[dnc["transaction_type"]] ==
+                dnc["tax"]][dnc["profit"]].to_numpy()]))
+        except AttributeError:
+            deposit = sum([sum([float(d) for d in rows_dividend[
+                rows_dividend[dnc["transaction_type"]] ==
+                deposit_name][dnc["profit"]].to_numpy()]) for deposit_name in dnc["deposit"]])
+            dividend = sum([float(d) for d in rows_dividend[
+                rows_dividend[dnc["transaction_type"]] ==
+                dnc["dividend"]][dnc["profit"]].to_numpy()])
+            loan_interest = abs(sum([float(d) for d in rows_dividend[
+                rows_dividend[dnc["transaction_type"]] ==
+                dnc["loan_interest"]][dnc["profit"]].to_numpy()]))
+            paid_dividend_tax = abs(sum([float(pdt) for pdt in
+                rows_dividend[rows_dividend[dnc["transaction_type"]] ==
+                dnc["tax"]][dnc["profit"]].to_numpy()]))
 
         # Calculate income and tax
         stock_income = profit - buy_cost - sell_cost - loan_interest - loss

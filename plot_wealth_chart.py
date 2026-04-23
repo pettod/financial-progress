@@ -2,6 +2,7 @@ import csv
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+from matplotlib.ticker import FuncFormatter
 import sys
 from math import sqrt, ceil
 from textwrap import wrap
@@ -17,6 +18,10 @@ DATE_FORMAT = "%Y"
 LOCATOR = mdates.YearLocator
 
 YEARS_PREDICTION = 3
+
+
+def formatThousandsTickLabels(ax):
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda value, _: f"{value:,.0f}"))
 
 
 def readCsvData(file_name, delimiter):
@@ -76,8 +81,9 @@ def readCsvData(file_name, delimiter):
 def plotDataPerDay(
         dates_as_numbers, datas, labels, title, ylabel, show=True,
         line_style='-'):
-    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter(DATE_FORMAT))
-    plt.gca().xaxis.set_major_locator(LOCATOR())
+    ax = plt.gca()
+    ax.xaxis.set_major_formatter(mdates.DateFormatter(DATE_FORMAT))
+    ax.xaxis.set_major_locator(LOCATOR())
     for data, label in zip(datas, labels):
         plt.plot(dates_as_numbers, data, line_style, label=label)
     plt.legend()
@@ -86,7 +92,7 @@ def plotDataPerDay(
     plt.xlabel("Date")
     plt.ylabel(ylabel)
     plt.title(title)
-    plt.gca().set_yticklabels(["{:,.0f}".format(x) for x in plt.gca().get_yticks()])
+    formatThousandsTickLabels(ax)
     if show:
         plt.show()
 
@@ -177,7 +183,7 @@ def plot2Datasets(x, data_1, data_2, title, ylabel_1, ylabel_2,
     fig.legend()
     ax_1.set_xlabel("Year")
     plt.title(title)
-    plt.gca().set_yticklabels(["{:,.0f}".format(x) for x in plt.gca().get_yticks()])
+    formatThousandsTickLabels(ax_1)
     plt.show()
 
 
